@@ -283,7 +283,17 @@ endif
 # ---------------------------------------------------------------
 # figure out the output directories
 
-SOONG_OUT_DIR := $(OUT_DIR)/soong
+ifeq (,$(strip $(OUT_DIR)))
+ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
+ifneq ($(TOPDIR),)
+OUT_DIR := $(TOPDIR)out
+else
+OUT_DIR := $(CURDIR)/out
+endif
+else
+OUT_DIR := $(OUT_DIR_COMMON_BASE)/$(notdir $(PWD))
+endif
+endif
 
 TARGET_OUT_ROOT := $(OUT_DIR)/target
 
