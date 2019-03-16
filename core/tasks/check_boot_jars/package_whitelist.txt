@@ -246,3 +246,5 @@ org\.chromium\.arc
 # CAF Packages
 org\.codeaurora\..*
 
+# telephony-ext jar
+org\.codeaurora\.internal\.*

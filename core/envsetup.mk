@@ -295,6 +295,8 @@ OUT_DIR := $(OUT_DIR_COMMON_BASE)/$(notdir $(PWD))
 endif
 endif
 
+SOONG_OUT_DIR := $(OUT_DIR)/soong
+
 TARGET_OUT_ROOT := $(OUT_DIR)/target
 
 HOST_OUT_ROOT := $(OUT_DIR)/host
