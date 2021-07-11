@@ -146,6 +146,7 @@ function check_product()
     fi
     if (echo -n $1 | grep -q -e "^stag_") ; then
         STAG_BUILD=$(echo -n $1 | sed -e 's/^stag_//g')
+        export BUILD_NUMBER=$( (date +%s%N ; echo $STAG_BUILD; hostname) | openssl sha1 | sed -e 's/.*=//g; s/ //g' | cut -c1-10 )
     else
         STAG_BUILD=
     fi
@@ -691,6 +692,18 @@ function lunch()
     TARGET_BUILD_VARIANT=$variant \
     TARGET_PLATFORM_VERSION=$version \
     build_build_var_cache
+
+    if [ $? -ne 0 ]
+    then
+        # if we can't find the product, try to grab it from our github
+        T=$(gettop)
+        C=$(pwd)
+        cd $T
+        $T/vendor/stag/build/tools/stagify.py $product
+        cd $C
+        check_product $product
+    fi
+
     if [ $? -ne 0 ]
     then
         echo
@@ -705,10 +718,9 @@ function lunch()
         return 1
     fi
 
-    export TARGET_PRODUCT=$(get_build_var TARGET_PRODUCT)
-    export TARGET_BUILD_VARIANT=$(get_build_var TARGET_BUILD_VARIANT)
+    export TARGET_BUILD_VARIANT
     if [ -n "$version" ]; then
-      export TARGET_PLATFORM_VERSION=$(get_build_var TARGET_PLATFORM_VERSION)
+      export TARGET_PLATFORM_VERSION
     else
       unset TARGET_PLATFORM_VERSION
     fi

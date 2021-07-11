@@ -295,6 +295,11 @@ include $(BUILD_SYSTEM)/envsetup.mk
 FIND_LEAVES_EXCLUDES := $(addprefix --prune=, $(SCAN_EXCLUDE_DIRS) .repo .git)
 
 -include vendor/extra/BoardConfigExtra.mk
+
+# General entries for project pathmap.  Any entries listed here should
+# be device and hardware independent.
+$(call project-set-path-variant,ril,TARGET_RIL_VARIANT,hardware/ril)
+
 ifneq ($(STAG_BUILD),)
 include vendor/stag/config/BoardConfigStag.mk
 endif
@@ -572,6 +577,7 @@ DEPMOD := $(HOST_OUT_EXECUTABLES)/depmod
 FILESLIST := $(SOONG_HOST_OUT_EXECUTABLES)/fileslist
 FILESLIST_UTIL :=$= build/make/tools/fileslist_util.py
 HOST_INIT_VERIFIER := $(HOST_OUT_EXECUTABLES)/host_init_verifier
+MAKE_PREBUILT := $(prebuilt_build_tools_bin)/make
 XMLLINT := $(SOONG_HOST_OUT_EXECUTABLES)/xmllint
 
 # SOONG_ZIP is exported by Soong, but needs to be defined early for
@@ -1244,6 +1250,23 @@ endif
 ifeq ($(CALLED_FROM_SETUP),true)
 include $(BUILD_SYSTEM)/ninja_config.mk
 include $(BUILD_SYSTEM)/soong_config.mk
+endif
+
+# Include any vendor specific config.mk file
+-include $(TOPDIR)vendor/*/build/core/config.mk
+
+# Include any vendor specific apicheck.mk file
+-include $(TOPDIR)vendor/*/build/core/apicheck.mk
+
+# Rules for MTK targets
+-include $(TOPDIR)vendor/*/build/core/mtk_target.mk
+
+ifneq ($(STAG_BUILD),)
+ifneq ($(wildcard device/stag/sepolicy/common/sepolicy.mk),)
+## We need to be sure the global selinux policies are included
+## last, to avoid accidental resetting by device configs
+$(eval include device/stag/sepolicy/common/sepolicy.mk)
+endif
 endif
 
 -include external/linux-kselftest/android/kselftest_test_list.mk

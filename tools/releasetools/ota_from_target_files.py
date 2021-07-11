@@ -827,8 +827,8 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
 
   CopyInstallTools(output_zip)
   script.UnpackPackageDir("install", "/tmp/install")
-  script.SetPermissionsRecursive("/tmp/install", 0, 0, 0o755, 0o644, None, None)
-  script.SetPermissionsRecursive("/tmp/install/bin", 0, 0, 0o755, 0o755, None, None)
+  script.SetPermissionsRecursive("/tmp/install", 0, 0, 0755, 0644, None, None)
+  script.SetPermissionsRecursive("/tmp/install/bin", 0, 0, 0755, 0755, None, None)
 
   if target_info.get("system_root_image") == "true":
     sysmount = "/"
@@ -845,6 +845,51 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
     system_progress -= 0.1
   progress_dict = {partition: 0.1 for partition in block_diff_dict}
   progress_dict["system"] = system_progress
+
+
+  script.Print(" ")
+  script.Print(" ")
+  script.Print("     _______.___________.    ___       _______  ")
+  script.Print("    /       |           |   /   \     /  _____| ")
+  script.Print("   |   (----`---|  |----`  /  ^  \   |  |  __   ")
+  script.Print("    \   \       |  |      /  /_\  \  |  | |_ |  ")
+  script.Print(".----)   |      |  |     /  _____  \ |  |__| |  ")
+  script.Print("|_______/       |__|    /__/     \__\ \______|  ")
+  script.Print("================Sic Parvis Magna================")
+  script.Print("StagOS : Elegance at your Fingertips            ")
+  script.Print("Presented to you by Team Stag                   ")
+  script.Print("================================================")
+
+
+  build = target_info.GetBuildProp("ro.build.date")
+  buildid = target_info.GetBuildProp("ro.stag.version")
+  buildtype = target_info.GetBuildProp("ro.stag.releasetype")
+  buildidn = target_info.GetBuildProp("ro.build.id")
+  buildday = target_info.GetBuildProp("ro.build.date")
+  securep = target_info.GetBuildProp("ro.build.version.security_patch")
+  device = target_info.GetBuildProp("ro.stag.device")
+  androidver = target_info.GetBuildProp("ro.build.version.release")
+  manufacturer = target_info.GetBuildProp("ro.product.manufacturer")
+  sdkver = target_info.GetBuildProp("ro.build.version.sdk")
+
+  script.Print(" **************** Information *****************");
+  script.Print(" StagOS version: %s"%(buildid));
+  script.Print("");
+  script.Print(" Android ver: %s"%(androidver));
+  script.Print("");
+  script.Print(" Security patch: %s"%(securep));
+  script.Print("");
+  script.Print(" SDK ver: %s"%(sdkver));
+  script.Print("");
+  script.Print(" Build ID: %s"%(buildidn));
+  script.Print("");
+  script.Print(" Build date: %s"%(buildday));
+  script.Print("");
+  script.Print(" Build type: %s"%(buildtype));
+  script.Print("");
+  script.Print(" Device codename: %s"%(device));
+  script.Print("");
+  script.Print(" *******************************************");
 
   if target_info.get('use_dynamic_partitions') == "true":
     # Use empty source_info_dict to indicate that all partitions / groups must

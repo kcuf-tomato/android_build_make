@@ -452,7 +452,12 @@ $(intermediate_system_build_prop): $(BUILDINFO_SH) $(BUILDINFO_COMMON_SH) $(INTE
 	        PLATFORM_VERSION_CODENAME="$(PLATFORM_VERSION_CODENAME)" \
 	        PLATFORM_VERSION_ALL_CODENAMES="$(PLATFORM_VERSION_ALL_CODENAMES)" \
 	        PLATFORM_MIN_SUPPORTED_TARGET_SDK_VERSION="$(PLATFORM_MIN_SUPPORTED_TARGET_SDK_VERSION)" \
+	        STAG_DEVICE="$(TARGET_DEVICE)" \
+		STAG_BUILD_TYPE="$(STAG_BUILD_TYPE)" \
+		StagOS_VERSION="$(StagOS_VERSION)" \
+                StagOS_BUILD="$(StagOS_BUILD)" \
 	        BUILD_VERSION_TAGS="$(BUILD_VERSION_TAGS)" \
+	        BUILD_FINGERPRINT="$(BUILD_FINGERPRINT_FROM_FILE)" \
 	        $(if $(OEM_THUMBPRINT_PROPERTIES),BUILD_THUMBPRINT="$(BUILD_THUMBPRINT_FROM_FILE)") \
 	        TARGET_CPU_ABI_LIST="$(TARGET_CPU_ABI_LIST)" \
 	        TARGET_CPU_ABI_LIST_32_BIT="$(TARGET_CPU_ABI_LIST_32_BIT)" \
@@ -2064,13 +2069,13 @@ RECOVERY_NO_COMMAND_TEXT_FILE :=
 endif # TARGET_RECOVERY_UI_SCREEN_WIDTH
 
 ifneq ($(TARGET_RECOVERY_DEVICE_DIRS),)
-recovery_root_private := $(strip \
-  $(foreach d,$(TARGET_RECOVERY_DEVICE_DIRS), $(wildcard $(d)/recovery/root)))
-else
+	recovery_root_private := $(strip \
+			  $(foreach d,$(TARGET_RECOVERY_DEVICE_DIRS), $(wildcard $(d)/recovery/root)))
+	else
 recovery_root_private := $(strip $(wildcard $(TARGET_DEVICE_DIR)/recovery/root))
 endif
 ifneq ($(recovery_root_private),)
-recovery_root_deps := $(shell find $(recovery_root_private) -type f)
+	recovery_root_deps := $(shell find $(recovery_root_private) -type f)
 endif
 
 ifndef TARGET_PRIVATE_RES_DIRS
@@ -2226,7 +2231,8 @@ $(recovery_uncompressed_ramdisk): $(MKBOOTFS) \
 	    $(recovery_sepolicy) \
 	    $(INSTALLED_2NDBOOTLOADER_TARGET) \
 	    $(INSTALLED_RECOVERY_BUILD_PROP_TARGET) \
-	    $(recovery_resource_deps) $(recovery_root_deps) \
+	    $(recovery_resource_deps) \
+	    $(recovery_root_deps) \
 	    $(recovery_fstab)
 	# Making recovery image
 	mkdir -p $(TARGET_RECOVERY_OUT)
@@ -2675,6 +2681,10 @@ INTERNAL_SYSTEMIMAGE_FILES := $(sort $(filter $(TARGET_OUT)/%, \
     $(PDK_FUSION_SYMLINK_STAMP))
 
 FULL_SYSTEMIMAGE_DEPS := $(INTERNAL_SYSTEMIMAGE_FILES) $(INTERNAL_USERIMAGES_DEPS)
+
+ifeq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
+    FULL_SYSTEMIMAGE_DEPS += $(INSTALLED_KERNEL_TARGET)
+endif
 
 # ASAN libraries in the system image - add dependency.
 ASAN_IN_SYSTEM_INSTALLED := $(TARGET_OUT)/asan.tar.bz2
@@ -3195,6 +3205,7 @@ $(INSTALLED_VENDORIMAGE_TARGET): \
     $(INTERNAL_USERIMAGES_DEPS) \
     $(INTERNAL_VENDORIMAGE_FILES) \
     $(INSTALLED_FILES_FILE_VENDOR) \
+    $(INSTALLED_KERNEL_TARGET) \
     $(RECOVERY_FROM_BOOT_PATCH)
 	$(build-vendorimage-target)
 
@@ -3405,6 +3416,10 @@ endif # BOARD_PREBUILT_DTBOIMAGE
 define images-for-partitions
 $(strip $(foreach item,$(1),$(INSTALLED_$(call to-upper,$(item))IMAGE_TARGET)))
 endef
+
+ifdef TARGET_NEEDS_DTBOIMAGE
+INSTALLED_DTBOIMAGE_TARGET := $(PRODUCT_OUT)/dtbo.img
+endif
 
 # -----------------------------------------------------------------
 # custom images
@@ -4135,6 +4150,7 @@ ifeq ($(build_otatools_package),true)
 
 INTERNAL_OTATOOLS_MODULES := \
   aapt2 \
+  adb \
   add_img_to_target_files \
   apksigner \
   append2simg \
@@ -4794,6 +4810,12 @@ ifdef BUILDING_VENDOR_IMAGE
 	$(hide) $(call package_files-copy-root, \
 	    $(TARGET_OUT_VENDOR),$(zip_root)/VENDOR)
 endif
+ifdef BOARD_CUSTOM_BOOTIMG
+	@# Prebuilt boot images
+	$(hide) mkdir -p $(zip_root)/BOOTABLE_IMAGES
+	$(hide) $(ACP) $(INSTALLED_BOOTIMAGE_TARGET) $(zip_root)/BOOTABLE_IMAGES/
+	$(hide) $(ACP) $(INSTALLED_RECOVERYIMAGE_TARGET) $(zip_root)/BOOTABLE_IMAGES/
+endif
 ifdef BUILDING_PRODUCT_IMAGE
 	@# Contents of the product image
 	$(hide) $(call package_files-copy-root, \
@@ -4901,10 +4923,10 @@ ifdef BOARD_PREBUILT_ODMIMAGE
 	$(hide) cp $(INSTALLED_ODMIMAGE_TARGET) $(zip_root)/IMAGES/
 	$(hide) echo "board_prebuilt_odm_image=true" >> $(zip_root)/META/misc_info.txt
 endif
-ifdef BOARD_PREBUILT_DTBOIMAGE
+ifdef INSTALLED_DTBOIMAGE_TARGET
 	$(hide) mkdir -p $(zip_root)/PREBUILT_IMAGES
 	$(hide) cp $(INSTALLED_DTBOIMAGE_TARGET) $(zip_root)/PREBUILT_IMAGES/
-endif # BOARD_PREBUILT_DTBOIMAGE
+endif # INSTALLED_DTBOIMAGE_TARGET
 ifneq ($(strip $(BOARD_CUSTOMIMAGES_PARTITION_LIST)),)
 	$(hide) mkdir -p $(zip_root)/PREBUILT_IMAGES
 	$(hide) $(foreach partition,$(BOARD_CUSTOMIMAGES_PARTITION_LIST), \
@@ -5017,7 +5039,7 @@ name := $(name)-ota-$(FILE_NAME_TAG)
 INTERNAL_OTA_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
 INTERNAL_OTA_METADATA := $(PRODUCT_OUT)/ota_metadata
 
-ifeq ($(TARGET_BUILD_VARIANT),user)
+ifeq ($(WITH_GMS),true)
     $(INTERNAL_OTA_PACKAGE_TARGET): backuptool := false
 else
 ifneq ($(STAG_BUILD),)
